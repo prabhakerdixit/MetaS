@@ -1,5 +1,3 @@
-import sys
-from pathlib import Path
 import streamlit as st
 import pandas as pd
 import plotly.express as px
@@ -39,28 +37,15 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# File paths
-BASE_DIR = Path(__file__).resolve().parent
-DEFAULT_DATA_PATH = BASE_DIR / "0620.csv"
-
 st.subheader("📊 Indian Railways Ticket Actions Report")
 
-uploaded_file = st.file_uploader("📂 Upload your main CSV or Excel file (optional)", type=["csv", "xlsx"], key="main_upload")
+uploaded_file = st.file_uploader("📂 Upload your main CSV or Excel file", type=["csv", "xlsx"], key="main_upload")
 uploaded_fileFLR = st.file_uploader("📂 Upload your FLR CSV or Excel file (optional)", type=["csv", "xlsx"], key="flr_upload")
 
 @st.cache_data
 def load_data(file_input):
     df = pd.DataFrame()
-    if isinstance(file_input, Path):
-        try:
-            df = pd.read_csv(file_input, encoding='utf-8')
-        except UnicodeDecodeError:
-            try:
-                df = pd.read_csv(file_input, encoding='ISO-8859-1')
-            except Exception as e:
-                st.error(f"❌ Error loading default CSV: {e}")
-                return pd.DataFrame()
-    elif file_input is not None:
+    if file_input is not None:
         file_extension = file_input.name.split('.')[-1].lower()
         if file_extension == 'csv':
             st.info("Loading data from uploaded CSV file...")
@@ -85,12 +70,18 @@ def load_data(file_input):
             st.warning("⚠️ Unsupported file type. Please upload CSV or XLSX.")
             return pd.DataFrame()
     else:
-        st.warning("⚠️ No file provided. Please upload a file or ensure default file exists.")
+        st.warning("⚠️ No file provided. Please upload a file.")
         return pd.DataFrame()
     return df
 
 # Load datasets
-data = load_data(uploaded_file) if uploaded_file else load_data(DEFAULT_DATA_PATH)
+data = pd.DataFrame()
+if uploaded_file is not None:
+    data = load_data(uploaded_file)
+else:
+    st.error("❗ Please upload a main CSV or Excel file to proceed.")
+    st.stop()
+
 data_FLR = pd.DataFrame()
 AgentFLR_Summary = pd.DataFrame()
 
@@ -131,7 +122,7 @@ else:
     st.info("Please upload an FLR file for 'FLR > 15 Min' analysis.")
 
 if data.empty:
-    st.error("❗ No data loaded. Please check your file.")
+    st.error("❗ No data loaded. Please upload a main CSV or Excel file.")
     st.stop()
 
 # Clean column names in main data
